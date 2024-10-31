@@ -1,0 +1,225 @@
+---
+title: "Teacher Evaluation data-Factor Analysis and PCA"
+author: "Sanjaya Mananage"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+header-includes: 
+  - \usepackage{graphicx}
+  - \usepackage{float}
+geometry: "left=2cm,right=2cm,top=1.5cm,bottom=1.5cm"
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(knitr)
+library(DT)
+library(xtable)
+```
+
+## Factor Analysis
+
+Scatterplot matrix
+
+```{r,warning=FALSE,message=FALSE}
+teacher <- read.csv("Teacher_Evaluation.csv")
+library(car)
+pairs(teacher)
+```
+
+Scatter plot matrix for teacher evaluation data is shown in above Figure. Factor analysis tries to explain the covariances or correlation of the observed variables by means of a few common factors. According to Figure most of the variables show linear relationship between other variables implying factor analysis is likely to be helpful for understanding these data.
+
+\textbf{Factor Analysis - PC method}
+
+```{r,warning=FALSE, message=FALSE}
+teacher<-read.csv("Teacher_Evaluation.csv")
+teacher.cor<-as.matrix(cor(teacher))
+teacher.mat=as.matrix(teacher)
+## PC Method
+library(psych)
+teacher.fa.pc <- lapply(1:4,function(nf)fa(teacher.mat,nfactors=nf,
+                    rotate="none",fm = 'pa',max.iter = 1)) 
+
+teacher.fa.pc[[4]]$STATISTIC
+teacher.fa.pc[[4]]$PVAL
+
+```
+
+Factor analysis with PC method - Test statistics:
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+No of Factors & Test statistics& p-value \\
+\hline
+$1$&  93.62929  &   2.792113e-09 \\
+$2$& 50.50468      &   0.0001104178\\
+$3$& 31.54493     &     0.001625939    \\
+$4$& 21.61055     &     0.001424149    \\
+\hline
+\end{tabular}
+\end{table}
+
+From PC method it it is unable to find significant adequate number of factors to explain the variables. 
+
+
+\textbf{Factor Analysis - ML method (Without varimax rotation)}
+
+
+
+```{r,warning=FALSE}
+#ML method
+teacher<-read.csv("Teacher_Evaluation.csv")
+teacher.cor<-cor(teacher)
+teacher.cor<-as.matrix(teacher.cor)
+
+cat("Unrotated factor analysis with m=1,2,3 by covariance matrix")
+teacher.fa1<-lapply(1:4,function(nf) factanal(covmat=teacher.cor,factors=nf,rotation="none",n.obs=120))
+
+#teacher.fa1[1]
+#teacher.fa1[2]
+teacher.fa1[3]
+
+cat("Residual matrix for m=3")
+pred1<-teacher.fa1[[3]]$loadings%*%t(teacher.fa1[[3]]$loadings)+
+diag(teacher.fa1[[3]]$uniquenesses)
+round(teacher.cor-pred1,digits=3)
+```
+
+\textbf{Factor Analysis - ML method (With varimax rotation)}
+
+
+```{r,echo=FALSE}
+cat("Rotated factor loadings")
+teacher.fa2<-lapply(1:4,function(nf)factanal(covmat=teacher.cor,factors=nf,rotation="varimax",n.obs=120))
+
+#teacher.fa2[1]
+#teacher.fa2[2]
+teacher.fa2[3]
+
+cat("Residual matrix for m=3")
+pred2<-teacher.fa2[[3]]$loadings%*%t(teacher.fa2[[3]]$loadings)+
+diag(teacher.fa2[[3]]$uniquenesses)
+round(teacher.cor-pred2,digits=3)
+
+```
+
+Factor analysis without varimax rotation
+ML method Test statistics:
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+No of Factors & Test statistics& p-value \\
+\hline
+$1$&  84.21  &   8.56e-08 \\
+$2$& 42.5      &   0.00152\\
+$3$& 20.61     &     0.0564    \\
+\hline
+\end{tabular}
+\end{table}
+
+Factor analysis with varimax rotation
+ML method Test statistics:
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+No of Factors & Test statistics& p-value \\
+\hline
+$1$&  84.21  &   8.56e-08 \\
+$2$& 42.5      &   0.00152\\
+$3$& 20.61     &     0.0564    \\
+\hline
+\end{tabular}
+\end{table}
+
+
+
+From two method with and without varimax rotation give the different results.
+
+
+Large Sample Test for the number of common factors: 
+$$
+\begin{aligned}
+  H_0 &: \mathbf{\Sigma} = \mathbf{L L^\prime +\Psi} \\
+  H_a &: \mathbf{\Sigma} \quad  \text{any other positive definite matrix}
+\end{aligned}
+$$
+Test statistic:
+
+$$
+\begin{aligned}
+n-1-\frac{2p+4m+5}{6}ln\frac{|\hat{L}\hat{L^\prime}+\hat{\Psi}|}{|S_n|}
+\end{aligned}
+$$
+
+For method with and without varimax rotation have similar results
+
+For both methods p-value is 0.0564>0.05. We do not reject $H_0$. Hence we can conclude that  three factor model is adequate by the test. 
+
+For both methods the off diagonal values of the residual matrix are close to zero. So again we can conclude that three factor model is adequate to explain the nine variables.
+
+Factor 1: Variables Entertaining, Communicate effectively and Charismatic are included in the first factor. (engaging skills)  
+
+Factor 2: Only Friendly and easy-going variable is belong to second factor
+
+Factor 3: Generally all nine variables are included in third factor. But motivation has higher contribution. 
+
+
+$\mathbf{\Sigma} = \mathbf{L L^\prime +\Psi}$
+
+Factor loading matrix:
+
+```{r,echo=FALSE}
+teacher<-read.csv("Teacher_Evaluation.csv")
+teacher.cor<-cor(teacher)
+teacher.cor<-as.matrix(teacher.cor)
+
+teacher.fa2<-lapply(1:4,function(nf)factanal(covmat=teacher.cor,factors=nf,rotation="varimax",n.obs=120))
+
+L<-as.matrix(teacher.fa2[[3]]$loadings)
+L
+```
+
+Specific variance matrix:
+
+```{r}
+diag(teacher.fa2[[3]]$uniquenesses)
+```
+
+Correlation/covariance matrix:
+
+```{r echo=FALSE}
+cor.mat<-L%*%t(L)+diag(teacher.fa2[[3]]$uniquenesses)
+round(cor.mat,5)
+```
+
+
+
+## Principal Component Analysis
+
+
+```{r,warning=FALSE,message=FALSE}
+teacher.pc <- princomp(teacher,cor=TRUE) # used CORRELATION matrix
+summary(teacher.pc,loadings=TRUE)
+```
+Proportions of variances 
+
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|l|l|}
+\hline
+ & Factor 1 & Factor 2  & Factor 3 & Factor 4\\
+\hline
+FA Proportion Var  &      0.26 & 0.09 & 0.04 & 0.03\\
+FA Cumulative Var  &      0.26 & 0.35 & 0.39 & 0.42\\
+PC Proportion Var & 0.3200485 & 0.1598505 & 0.1293255 & 0.1138281 \\
+PC Cumulative Var & 0.3200485 & 0.4798990 & 0.6092245 & 0.7230526\\
+\hline
+\end{tabular}
+\end{table}
+
+
